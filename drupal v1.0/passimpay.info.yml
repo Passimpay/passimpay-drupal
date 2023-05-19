@@ -1,9 +1,0 @@
-name: PassimPay
-type: module
-description: 'Implements PassimPay payment services for use with Drupal Commerce.'
-package: Commerce (PassimPay)
-dependencies:
-  - commerce
-  - commerce:commerce_payment
-core: '8.x'
-core_version_requirement: ^8 || ^9 || ^10
