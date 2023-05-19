@@ -1,0 +1,8 @@
+services:
+  passimpay.logger:
+    class: Drupal\Core\Logger\LoggerChannel
+    factory: logger.factory:get
+    arguments: ['passimpay']
+  passimpay.ipn_cp_handler:
+    class: Drupal\passimpay\IPNCPHandler
+    arguments: ['@database', '@entity_type.manager', '@passimpay.logger', '@http_client', '@config.factory']

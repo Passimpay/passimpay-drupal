@@ -1,0 +1,7 @@
+passimpay.processipn:
+  path: '/passimpay/ipn'
+  defaults:
+    _controller: '\Drupal\passimpay\Controller\PassimpayController::paymentProcessing'
+    _title: 'Commerce Passimpay IPN'
+  requirements:
+    _permission: 'access commerce passimpay ipn'
