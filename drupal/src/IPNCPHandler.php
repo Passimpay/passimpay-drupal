@@ -9,7 +9,8 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use GuzzleHttp\ClientInterface;
 use Psr\Log\LoggerInterface;
 
-class IPNCPHandler {
+class IPNCPHandler 
+{
 
   /**
    * The database connection to use.
@@ -51,7 +52,7 @@ class IPNCPHandler {
    *
    * @param \Drupal\Core\Database\Connection $connection
    *   The database connection to use.
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager.
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger channel.
@@ -60,9 +61,16 @@ class IPNCPHandler {
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
    *   Config object.
    */
-  public function __construct(Connection $connection, EntityTypeManagerInterface $entity_type_manager, LoggerInterface $logger, ClientInterface $client, ConfigFactoryInterface $configFactory) {
+  public function __construct(
+	Connection $connection, 
+	EntityTypeManagerInterface $entityTypeManager, 
+	LoggerInterface $logger, 
+	ClientInterface $client, 
+	ConfigFactoryInterface $configFactory
+	) 
+  {
     $this->connection = $connection;
-    $this->entityTypeManager = $entity_type_manager;
+    $this->entityTypeManager = $entityTypeManager;
     $this->logger = $logger;
     $this->httpClient = $client;
     $this->commercePassimpay = $configFactory->get('commerce_payment.commerce_payment_gateway.passimpay');
@@ -74,89 +82,92 @@ class IPNCPHandler {
    *
    * @return mixed|void
    */
-  public function getCurencies($sort_key = 'id') {
+  public function getCurencies($sortKey = 'id') 
+  {
     $config = $this->getConfig();
     $url = 'https://passimpay.io/api/currencies';
     $apikey = $config['ipn_secret'];
-    $platform_id = $config['merchant_id'];
+    $platformId = $config['merchant_id'];
 
-    $payload = http_build_query(['platform_id' => $platform_id ]);
+    $payload = http_build_query(['platform_id' => $platformId ]);
     $hash = hash_hmac('sha256', $payload, $apikey);
 
     $data = [
-      'platform_id' => $platform_id,
+      'platform_id' => $platformId,
       'hash' => $hash,
     ];
 
-    $post_data = http_build_query($data);
+    $postData = http_build_query($data);
 
     $curl = curl_init();
     curl_setopt($curl, CURLOPT_HEADER, false);
     curl_setopt($curl, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($curl, CURLOPT_POSTFIELDS, $post_data);
+    curl_setopt($curl, CURLOPT_POSTFIELDS, $postData);
     curl_setopt($curl, CURLOPT_URL, $url);
     curl_setopt($curl, CURLOPT_POST, true);
     curl_setopt($curl, CURLOPT_ENCODING, 'gzip');
     curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
-    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+    //curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+    //curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
     $result = curl_exec($curl);
-    curl_close( $curl );
+    curl_close($curl);
 
     $result = json_decode($result, true);
     // Варианты ответов
     // В случае успеха
-    if (isset($result['result']) && $result['result'] == 1)   {
-      return $this->CurenciesLocalData($result['list'], $sort_key);
+    if (isset($result['result']) && $result['result'] == 1) {
+      return $this->curenciesLocalData($result['list'], $sortKey);
     }
   }
 
   /**
-   * @param $remote_curencies_list
+   * @param $remoteCurenciesList
    *
    * @return array
    */
-  private function CurenciesLocalData($remote_curencies_list, $sort_key = 'id') {
-    $curencies_list = [];
-    foreach ($remote_curencies_list as $curencie) {
-      $curencies_list[$curencie[$sort_key]] = $curencie;
+  private function curenciesLocalData($remoteCurenciesList, $sortKey = 'id') 
+  {
+    $curenciesList = [];
+    foreach ($remoteCurenciesList as $curencie) {
+      $curenciesList[$curencie[$sortKey]] = $curencie;
     }
 
-    return $curencies_list;
+    return $curenciesList;
   }
 
-  public function getOrderStatus(OrderInterface $order) {
+  public function getOrderStatus(OrderInterface $order) 
+  {
 
     $url = 'https://passimpay.io/api/orderstatus';
-    $platform_id = $this->getConfig()['merchant_id']; // Platform ID
+    $platformId = $this->getConfig()['merchant_id']; // Platform ID
     $apikey = $this->getConfig()['ipn_secret'];
-    $order_id = $order->id(); // Payment ID of your platform
+    $orderId = $order->id(); // Payment ID of your platform
 
-    $payload = http_build_query(['platform_id' => $platform_id, 'order_id' => $order_id ]);
+    $payload = http_build_query(['platform_id' => $platformId, 'order_id' => $orderId ]);
     $hash = hash_hmac('sha256', $payload, $apikey);
 
     $data = [
-      'platform_id' => $platform_id,
-      'order_id' => $order_id,
+      'platform_id' => $platformId,
+      'order_id' => $orderId,
       'hash' => $hash
     ];
 
-    $post_data = http_build_query($data);
+    $postData = http_build_query($data);
 
     $curl = curl_init();
     curl_setopt($curl, CURLOPT_HEADER, false);
     curl_setopt($curl, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($curl, CURLOPT_POSTFIELDS, $post_data);
+    curl_setopt($curl, CURLOPT_POSTFIELDS, $postData);
     curl_setopt($curl, CURLOPT_URL, $url);
     curl_setopt($curl, CURLOPT_POST, true);
     curl_setopt($curl, CURLOPT_ENCODING, 'gzip');
     curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
-    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+    //curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+    //curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
     $result = curl_exec($curl);
-    curl_close( $curl );
+    curl_close($curl);
 
     $result = json_decode($result, true);
 
@@ -164,11 +175,9 @@ class IPNCPHandler {
     // In case of success
     if (isset($result['result']) && $result['result'] == 1) {
       $status = $result['status']; // paid, error, wait
-      \Drupal::logger('passimpay')->warning('<pre><code>' . print_r($result, TRUE) . '</code></pre>');
+      \Drupal::logger('passimpay')->warning('<pre><code>' . print_r($result, true) . '</code></pre>');
       return $status;
-    }
-    // In case of an error
-    else  {
+    } else {
       $error = $result['message']; // Error text
     }
   }
@@ -176,8 +185,12 @@ class IPNCPHandler {
   /**
    * @return mixed
    */
-  public function getConfig () {
-    $config = \Drupal::service('config.factory')->get('commerce_payment.commerce_payment_gateway.passimpay')->getRawData();
+  public function getConfig() 
+  {
+    $config = \Drupal::service('config.factory')
+		->get('commerce_payment.commerce_payment_gateway.passimpay')
+		->getRawData();
+		
     return $config['configuration'];
   }
 }
