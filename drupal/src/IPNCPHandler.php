@@ -85,7 +85,7 @@ class IPNCPHandler
   public function getCurencies($sortKey = 'id') 
   {
     $config = $this->getConfig();
-    $url = 'https://passimpay.io/api/currencies';
+    $url = 'https://api.passimpay.io/currencies';
     $apikey = $config['ipn_secret'];
     $platformId = $config['merchant_id'];
 
@@ -139,7 +139,7 @@ class IPNCPHandler
   public function getOrderStatus(OrderInterface $order) 
   {
 
-    $url = 'https://passimpay.io/api/orderstatus';
+    $url = 'https://api.passimpay.io/orderstatus';
     $platformId = $this->getConfig()['merchant_id']; // Platform ID
     $apikey = $this->getConfig()['ipn_secret'];
     $orderId = $order->id(); // Payment ID of your platform
