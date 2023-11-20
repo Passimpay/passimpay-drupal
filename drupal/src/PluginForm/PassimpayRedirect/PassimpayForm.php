@@ -45,7 +45,7 @@ class PassimpayForm extends BasePaymentOffsiteForm
     $order->recalculateTotalPrice();
     $order->save();
 
-    $url = 'https://passimpay.io/api/createorder';
+    $url = 'https://api.passimpay.io/createorder';
     $platformId = $paymentConfiguration['merchant_id']; // Platform ID
     $apikey = $paymentConfiguration['ipn_secret']; // Secret key
     $orderId = $order->id(); // Payment ID of your platform
