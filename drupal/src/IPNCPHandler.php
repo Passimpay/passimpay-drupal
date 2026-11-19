@@ -84,40 +84,38 @@ class IPNCPHandler
    */
   public function getCurencies($sortKey = 'id') 
   {
+    $url = 'https://api.passimpay.io/v2/currencies';
     $config = $this->getConfig();
-    $url = 'https://api.passimpay.io/currencies';
+    $platformId = filter_var($config['merchant_id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
     $apikey = $config['ipn_secret'];
-    $platformId = $config['merchant_id'];
-
-    $payload = http_build_query(['platform_id' => $platformId ]);
-    $hash = hash_hmac('sha256', $payload, $apikey);
-
-    $data = [
-      'platform_id' => $platformId,
-      'hash' => $hash,
-    ];
-
-    $postData = http_build_query($data);
+    if ($platformId === false || !is_string($apikey) || $apikey === '') {
+      return null;
+    }
+    $postData = json_encode(['platformId' => $platformId]);
+    $signature = hash_hmac('sha256', $platformId . ';' . $postData . ';' . $apikey, $apikey);
 
     $curl = curl_init();
     curl_setopt($curl, CURLOPT_HEADER, false);
-    curl_setopt($curl, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
+    curl_setopt($curl, CURLOPT_HTTPHEADER, ['Content-Type: application/json', 'x-signature: ' . $signature]);
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($curl, CURLOPT_POSTFIELDS, $postData);
     curl_setopt($curl, CURLOPT_URL, $url);
     curl_setopt($curl, CURLOPT_POST, true);
+    curl_setopt($curl, CURLOPT_POSTFIELDS, $postData);
     curl_setopt($curl, CURLOPT_ENCODING, 'gzip');
-    curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
-    //curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-    //curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($curl, CURLOPT_FOLLOWLOCATION, false);
+    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
     $result = curl_exec($curl);
+    $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
     curl_close($curl);
 
-    $result = json_decode($result, true);
+    $result = is_string($result) ? json_decode($result, true) : null;
     // Варианты ответов
     // В случае успеха
-    if (isset($result['result']) && $result['result'] == 1) {
-      return $this->curenciesLocalData($result['list'], $sortKey);
+    if ($httpCode === 200 && is_array($result) && ($result['result'] ?? null) === 1) {
+      if (isset($result['list']) && is_array($result['list'])) {
+        return $this->curenciesLocalData($result['list'], $sortKey);
+      }
     }
   }
 
@@ -130,7 +128,9 @@ class IPNCPHandler
   {
     $curenciesList = [];
     foreach ($remoteCurenciesList as $curencie) {
-      $curenciesList[$curencie[$sortKey]] = $curencie;
+      if (is_array($curencie) && isset($curencie[$sortKey]) && is_scalar($curencie[$sortKey])) {
+        $curenciesList[$curencie[$sortKey]] = $curencie;
+      }
     }
 
     return $curenciesList;
@@ -139,47 +139,39 @@ class IPNCPHandler
   public function getOrderStatus(OrderInterface $order) 
   {
 
-    $url = 'https://api.passimpay.io/orderstatus';
+    $url = 'https://api.passimpay.io/v2/orderstatus';
     $platformId = $this->getConfig()['merchant_id']; // Platform ID
     $apikey = $this->getConfig()['ipn_secret'];
     $orderId = $order->id(); // Payment ID of your platform
 
-    $payload = http_build_query(['platform_id' => $platformId, 'order_id' => $orderId ]);
-    $hash = hash_hmac('sha256', $payload, $apikey);
-
-    $data = [
-      'platform_id' => $platformId,
-      'order_id' => $orderId,
-      'hash' => $hash
-    ];
-
-    $postData = http_build_query($data);
+    if (filter_var($platformId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false || !is_string($apikey) || $apikey === '') {
+      return null;
+    }
+    $postData = json_encode(['platformId' => (int)$platformId, 'orderId' => (string)$orderId]);
+    $signature = hash_hmac('sha256', $platformId . ';' . $postData . ';' . $apikey, $apikey);
 
     $curl = curl_init();
     curl_setopt($curl, CURLOPT_HEADER, false);
-    curl_setopt($curl, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
+    curl_setopt($curl, CURLOPT_HTTPHEADER, ['Content-Type: application/json', 'x-signature: ' . $signature]);
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($curl, CURLOPT_POSTFIELDS, $postData);
     curl_setopt($curl, CURLOPT_URL, $url);
     curl_setopt($curl, CURLOPT_POST, true);
     curl_setopt($curl, CURLOPT_ENCODING, 'gzip');
-    curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
-    //curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-    //curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($curl, CURLOPT_FOLLOWLOCATION, false);
+    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
     $result = curl_exec($curl);
+    $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
     curl_close($curl);
 
-    $result = json_decode($result, true);
+    $result = is_string($result) ? json_decode($result, true) : null;
 
-    // Response options
-    // In case of success
-    if (isset($result['result']) && $result['result'] == 1) {
-      $status = $result['status']; // paid, error, wait
-      \Drupal::logger('passimpay')->warning('<pre><code>' . print_r($result, true) . '</code></pre>');
-      return $status;
-    } else {
-      $error = $result['message']; // Error text
+    if ($httpCode === 200 && is_array($result) && ($result['result'] ?? null) === 1
+      && in_array($result['status'] ?? null, ['paid', 'wait', 'error'], true)) {
+      return $result['status'];
     }
+    return null;
   }
 
   /**

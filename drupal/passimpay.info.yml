@@ -1,5 +1,6 @@
 name: PassimPay
 type: module
+version: '1.0.1'
 description: 'Implements PassimPay payment services for use with Drupal Commerce.'
 package: Commerce (PassimPay)
 dependencies:
